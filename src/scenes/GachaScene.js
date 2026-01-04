@@ -130,7 +130,10 @@ export default class GachaScene extends Phaser.Scene {
   }
 
   hideZoom() {
-    this.zoomContainer.setVisible(false);
+    // FIX GHOST CLICK: Beri jeda 50ms agar klik tidak tembus ke kartu di bawahnya
+    this.time.delayedCall(50, () => {
+      this.zoomContainer.setVisible(false);
+    });
   }
 
   // --- LOGIC UTAMA PENGECEKAN KARTU ---
@@ -201,8 +204,17 @@ export default class GachaScene extends Phaser.Scene {
       this.revealAllBtn = null;
     }
 
+    // --- SYSTEM ACHIEVEMENT ---
+    // 1. Track Pack Opened (+1)
+    PlayerData.trackPackOpened(1);
+
     const results = this.gachaSystem.openPack(1, this.currentSet);
+
+    // 2. Add Cards & Check Specific Card / Level Achievement
     PlayerData.addCards(results);
+
+    // 3. Cek Full Collection Achievement (Butuh akses ke GachaSystem)
+    PlayerData.checkAchievements(this.gachaSystem);
 
     let filesToLoad = 0;
     results.forEach((cardData) => {

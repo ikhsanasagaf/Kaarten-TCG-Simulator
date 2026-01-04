@@ -7,6 +7,7 @@ import GachaScene from "./scenes/GachaScene";
 import CollectionScene from "./scenes/CollectionScene";
 import InventoryScene from "./scenes/InventoryScene";
 import ProfileScene from "./scenes/ProfileScene";
+import AchievementScene from "./scenes/AchievmentScene";
 
 // Konfigurasi Game
 const config = {
@@ -35,6 +36,7 @@ const config = {
     CollectionScene,
     InventoryScene,
     ProfileScene,
+    AchievementScene,
   ],
 };
 

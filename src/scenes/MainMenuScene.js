@@ -20,23 +20,28 @@ export default class MainMenuScene extends Phaser.Scene {
     const startY = 220;
     const gapY = 80;
 
-    // 0. PROFILE (NEW)
+    // PROFILE
     this.createMenuButton(640, startY, "Shop", () => {
       this.scene.start("ShopScene");
     });
 
-    // 1. SHOP (Gacha)
-    this.createMenuButton(640, startY + gapY, "Inventory", () => {
+    // ACHIEVEMENTS
+    this.createMenuButton(640, startY + gapY, "Achievments", () => {
+            this.scene.start('AchievementScene');
+        });
+
+    // SHOP
+    this.createMenuButton(640, startY + gapY * 2, "Inventory", () => {
       this.scene.start("InventoryScene");
     });
 
-    // 2. ALBUM (Checklist)
-    this.createMenuButton(640, startY + gapY * 2, "Collection", () => {
+    // ALBUM
+    this.createMenuButton(640, startY + gapY * 3, "Collection", () => {
       this.scene.start("CollectionScene");
     });
 
-    // 3. INVENTORY (Sell)
-    this.createMenuButton(640, startY + gapY * 3, "Profile", () => {
+    // INVENTORY
+    this.createMenuButton(640, startY + gapY * 4, "Profile", () => {
       this.scene.start("ProfileScene");
     });
   }
