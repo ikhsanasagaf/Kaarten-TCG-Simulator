@@ -12,7 +12,6 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
-    "mongodb": "^7.0.0",
     "phaser": "^3.90.0"
   }
 }

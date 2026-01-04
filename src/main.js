@@ -5,6 +5,10 @@ import MainMenuScene from './scenes/MainMenuScene';
 import ShopScene from './scenes/ShopScene';
 import GachaScene from './scenes/GachaScene';
 import CollectionScene from './scenes/CollectionScene';
+import InventoryScene from './scenes/InventoryScene';
+import ProfileScene from './scenes/ProfileScene';
+
+
 // Konfigurasi Game
 const config = {
     type: Phaser.AUTO, // Otomatis pilih WebGL atau Canvas
@@ -29,7 +33,9 @@ const config = {
         MainMenuScene,  
         ShopScene,    
         GachaScene,     
-        CollectionScene 
+        CollectionScene,
+        InventoryScene,
+        ProfileScene
     ]
 };
 

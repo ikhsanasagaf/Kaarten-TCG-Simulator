@@ -6,51 +6,58 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
-    // Tampilkan Background
-    this.add.rectangle(640, 360, 1280, 720, 0x222222);
-
     // Judul Game
     this.add
-      .text(640, 100, "KAARTEN", {
-        fontSize: "64px",
-        fontFamily: "Arial",
-        color: "#ffffff",
+      .text(640, 80, "KAARTEN TCG", {
+        // Naikkan sedikit Y nya
+        fontSize: "60px",
         fontStyle: "bold",
+        color: "#ffffff",
       })
       .setOrigin(0.5);
 
-    // Tombol Shop (Navigasi ke ShopScene)
-    const shopBtn = this.add
-      .text(640, 300, "SHOP (BELI PACK)", {
-        fontSize: "32px",
-        color: "#00ff00",
-        backgroundColor: "#000000",
-        padding: { x: 20, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    // --- MENU BUTTONS ---
+    const startY = 220;
+    const gapY = 80;
 
-    // Event Klik
-    shopBtn.on("pointerdown", () => {
-      this.scene.start("ShopScene"); // Arahkan ke Shop dulu!
+    // 0. PROFILE (NEW)
+    this.createMenuButton(640, startY, "Shop", () => {
+      this.scene.start("ShopScene");
     });
 
-    const collectionBtn = this.add
-      .text(640, 400, "MY COLLECTION", {
-        fontSize: "32px",
-        color: "#00ffff",
-        backgroundColor: "#000000",
-        padding: { x: 20, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive();
+    // 1. SHOP (Gacha)
+    this.createMenuButton(640, startY + gapY, "Inventory", () => {
+      this.scene.start("InventoryScene");
+    });
 
-    collectionBtn.on("pointerdown", () => {
+    // 2. ALBUM (Checklist)
+    this.createMenuButton(640, startY + gapY * 2, "Collection", () => {
       this.scene.start("CollectionScene");
     });
 
-    // Efek Hover Mouse
-    shopBtn.on("pointerover", () => shopBtn.setStyle({ color: "#ffff00" }));
-    shopBtn.on("pointerout", () => shopBtn.setStyle({ color: "#00ff00" }));
+    // 3. INVENTORY (Sell)
+    this.createMenuButton(640, startY + gapY * 3, "Profile", () => {
+      this.scene.start("ProfileScene");
+    });
+  }
+
+  createMenuButton(x, y, text, callback) {
+    const btn = this.add
+      .text(x, y, text, {
+        fontSize: "32px",
+        color: "#00ff00",
+        backgroundColor: "#222",
+        padding: { x: 20, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    btn.on("pointerover", () =>
+      btn.setStyle({ color: "#000", backgroundColor: "#00ff00" })
+    );
+    btn.on("pointerout", () =>
+      btn.setStyle({ color: "#00ff00", backgroundColor: "#222" })
+    );
+    btn.on("pointerdown", callback);
   }
 }

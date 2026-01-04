@@ -1,22 +1,64 @@
 import Phaser from "phaser";
 import GachaSystem from "../systems/GachaSystem";
+import PlayerData from "../utils/PlayerData";
 
 export default class ShopScene extends Phaser.Scene {
   constructor() {
     super("ShopScene");
+
+    // --- KONFIGURASI HARGA (Pack 1, 2, 3) ---
+    this.packPrices = {
+      "LEGEND OF BLUE EYES WHITE DRAGON": 10,
+      "PHARAONIC GUARDIAN": 4,
+      "INVASION OF CHAOS": 6,
+    };
+
+    this.defaultPrice = 5;
   }
 
   create() {
     const sys = new GachaSystem(this);
     const setList = sys.getSetList();
 
+    // --- HEADER UI (Tampilan Atas yang Rapi) ---
+
+    // 1. Background Header (Bar Hitam)
+    this.add.rectangle(640, 60, 1280, 120, 0x1a1a2e).setDepth(10); // Pastikan di atas layer lain
+
+    // 2. Judul "SHOP" (Tengah)
     this.add
-      .text(640, 50, "SHOP - PILIH PACK", {
+      .text(640, 60, "SHOP", {
         fontSize: "40px",
         fontStyle: "bold",
+        color: "#ffffff",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setDepth(11);
 
+    // 3. Tombol Kembali (Kiri Atas - Rapi dengan Background)
+    const backBtn = this.add
+      .text(40, 60, "< BACK", {
+        fontSize: "24px",
+        color: "#ffffff",
+        backgroundColor: "#333333",
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(0, 0.5) // Anchor Kiri-Tengah
+      .setInteractive({ useHandCursor: true })
+      .setDepth(11);
+
+    backBtn.on("pointerover", () =>
+      backBtn.setStyle({ backgroundColor: "#555" })
+    );
+    backBtn.on("pointerout", () =>
+      backBtn.setStyle({ backgroundColor: "#333" })
+    );
+    backBtn.on("pointerdown", () => this.scene.start("MainMenuScene"));
+
+    // 4. Tampilkan Uang Player (Kanan Atas)
+    this.createMoneyDisplay();
+
+    // --- LOGIKA LOAD PACK ---
     const packImageMap = {
       "LEGEND OF BLUE EYES WHITE DRAGON":
         "LEGEND_OF_BLUE_EYES_WHITE_DRAGON.png",
@@ -27,34 +69,35 @@ export default class ShopScene extends Phaser.Scene {
     let startX = 300;
     let filesToLoad = 0;
 
+    // Load Assets
     setList.forEach((setName, index) => {
-      // 1. Tentukan Nama File
-      // Jika ada di kamus map, pakai itu. Jika tidak, pakai cara otomatis (spasi jadi underscore)
       const filename =
         packImageMap[setName] || setName.replace(/ /g, "_") + ".png";
       const fullPath = `assets/packs/${filename}`;
       const packKey = `pack_${index}`;
 
-      console.log(`[Shop] Set: "${setName}" -> Mencari gambar: "${fullPath}"`);
-
-      // 2. Cek apakah texture sudah ada?
       if (!this.textures.exists(packKey)) {
         this.load.image(packKey, fullPath);
         filesToLoad++;
       }
     });
 
-    // 3. Fungsi membuat tombol (dijalankan setelah load selesai atau langsung)
+    // Create Buttons Callback
     const createButtons = () => {
       setList.forEach((setName, index) => {
         const packKey = `pack_${index}`;
-        // Cek lagi apakah texture berhasil di-load?
+        const price = this.packPrices[setName] || this.defaultPrice;
+
         if (this.textures.exists(packKey)) {
-          this.createPackButton(startX + index * 350, 360, packKey, setName);
+          this.createPackButton(
+            startX + index * 350,
+            360,
+            packKey,
+            setName,
+            price
+          );
         } else {
-          // FALLBACK: Jika gambar gagal load (masih 404), buat Kotak Warna saja
-          // Supaya tidak muncul gambar silang
-          this.createFallbackButton(startX + index * 350, 360, setName);
+          this.createFallbackButton(startX + index * 350, 360, setName, price);
         }
       });
     };
@@ -65,88 +108,129 @@ export default class ShopScene extends Phaser.Scene {
     } else {
       createButtons();
     }
-
-    // Tombol Kembali
-    this.add
-      .text(50, 50, "< BACK", { fontSize: "24px" })
-      .setInteractive()
-      .on("pointerdown", () => this.scene.start("MainMenuScene"));
   }
 
-  // Fungsi tambahan untuk menangani gambar yang hilang (Fallback)
-  createFallbackButton(x, y, setName) {
+  createMoneyDisplay() {
+    const currentMoney = PlayerData.getMoney();
+
+    // Update posisi agar masuk ke dalam Header Bar (y: 60)
+    this.moneyText = this.add
+      .text(1230, 60, `Money: $${currentMoney}`, {
+        fontSize: "30px",
+        color: "#ffd700",
+        fontStyle: "bold",
+      })
+      .setOrigin(1, 0.5)
+      .setDepth(11);
+  }
+
+  // --- LOGIKA TRANSAKSI ---
+  attemptBuyPack(setName, price) {
+    const isSuccess = PlayerData.spendMoney(price);
+
+    if (isSuccess) {
+      console.log(`[Shop] Sukses membeli ${setName} seharga $${price}`);
+      this.moneyText.setText(`Money: $${PlayerData.getMoney()}`);
+      this.scene.start("GachaScene", { selectedSet: setName });
+    } else {
+      console.log("[Shop] Uang tidak cukup!");
+      this.tweens.add({
+        targets: this.moneyText,
+        x: this.moneyText.x + 10,
+        duration: 50,
+        yoyo: true,
+        repeat: 3,
+        onStart: () => this.moneyText.setColor("#ff0000"),
+        onComplete: () => this.moneyText.setColor("#ffd700"),
+      });
+    }
+  }
+
+  // --- TOMBOL FALLBACK ---
+  createFallbackButton(x, y, setName, price) {
     const container = this.add.container(x, y);
+    const rect = this.add.rectangle(0, 0, 200, 300, 0x6600cc).setInteractive({ useHandCursor: true });
 
-    // Buat Kotak Ungu sebagai pengganti gambar
-    const rect = this.add.rectangle(0, 0, 200, 300, 0x6600cc).setInteractive();
     const label = this.add
-      .text(0, 0, "NO IMAGE", { fontSize: "24px" })
+      .text(0, -50, "NO IMAGE", { fontSize: "24px" })
       .setOrigin(0.5);
-
-    const text = this.add
-      .text(0, 180, setName, {
-        fontSize: "20px",
+    const nameText = this.add
+      .text(0, 150, setName, {
+        fontSize: "18px",
         align: "center",
         wordWrap: { width: 200 },
       })
       .setOrigin(0.5);
 
-    container.add([rect, label, text]);
+    const priceText = this.add
+      .text(0, 180, `$${price}`, {
+        fontSize: "24px",
+        color: "#00ff00",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+
+    container.add([rect, label, nameText, priceText]);
 
     rect.on("pointerdown", () => {
-      console.log(`Memilih set (Fallback): ${setName}`);
-      this.scene.start("GachaScene", { selectedSet: setName });
+      this.attemptBuyPack(setName, price);
     });
   }
 
-  createPackButton(x, y, key, setName) {
-    const container = this.add.container(x, y); // Gambar Pack
+  // --- TOMBOL GAMBAR PACK ---
+  createPackButton(x, y, key, setName, price) {
+    const container = this.add.container(x, y);
 
-    const img = this.add.image(0, 0, key).setInteractive(); // 1. Atur ukuran visual pack
-    img.setDisplaySize(200, 300); // 2. SIMPAN skala hasil kalkulasi setDisplaySize
+    const img = this.add.image(0, 0, key).setInteractive({ useHandCursor: true });
+    img.setDisplaySize(200, 300);
 
-    // Ini penting karena kita tidak tahu nilai aslinya berapa (bisa 0.5, 0.2, dll)
     const baseScaleX = img.scaleX;
-    const baseScaleY = img.scaleY; // Teks Nama Set
+    const baseScaleY = img.scaleY;
 
-    const text = this.add
-      .text(0, 180, setName, {
-        fontSize: "20px",
+    const nameText = this.add
+      .text(0, 170, setName, {
+        fontSize: "16px",
         align: "center",
         wordWrap: { width: 200 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
 
-    container.add([img, text]); // 3. Efek Hover menggunakan TWEEN (Animasi Halus)
+    const priceText = this.add
+      .text(0, 210, `$${price}`, {
+        fontSize: "28px",
+        color: "#00ff00",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5, 0);
+
+    container.add([img, nameText, priceText]);
 
     img.on("pointerover", () => {
-      // Hentikan tween sebelumnya jika ada biar gak tumpang tindih
       this.tweens.killTweensOf(img);
-
       this.tweens.add({
         targets: img,
-        scaleX: baseScaleX * 1.1, // Membesar 10% dari skala base
-        scaleY: baseScaleY * 1.1,
-        duration: 100, // Durasi animasi dalam milidetik
+        scaleX: baseScaleX * 1.05,
+        scaleY: baseScaleY * 1.05,
+        duration: 100,
         ease: "Linear",
       });
     });
 
     img.on("pointerout", () => {
       this.tweens.killTweensOf(img);
-
       this.tweens.add({
         targets: img,
-        scaleX: baseScaleX, // Kembali ke skala base (sesuai ukuran 200x300)
+        scaleX: baseScaleX,
         scaleY: baseScaleY,
         duration: 100,
         ease: "Linear",
       });
-    }); // KLIK: Masuk ke GachaScene dengan membawa DATA SET
+    });
 
     img.on("pointerdown", () => {
-      console.log(`Memilih set: ${setName}`);
-      this.scene.start("GachaScene", { selectedSet: setName });
+      this.attemptBuyPack(setName, price);
     });
   }
 }
