@@ -68,7 +68,6 @@ export default class InventoryScene extends Phaser.Scene {
 
   createZoomContainer() {
     // Container Zoom
-    // PERBAIKAN: Hapus setScrollFactor(0) agar kita bisa atur posisi manual mengikuti kamera
     this.zoomContainer = this.add
       .container(0, 0)
       .setDepth(100)
@@ -102,8 +101,6 @@ export default class InventoryScene extends Phaser.Scene {
   showZoom(textureKey) {
     this.isZooming = true; // Kunci scroll dan interaksi lain
 
-    // PERBAIKAN: Pindahkan container ke posisi kamera saat ini
-    // Ini memperbaiki bug area klik (hit area) yang tertinggal saat scroll
     this.zoomContainer.setPosition(
       this.cameras.main.scrollX,
       this.cameras.main.scrollY

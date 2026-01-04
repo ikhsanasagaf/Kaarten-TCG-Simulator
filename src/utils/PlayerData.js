@@ -1,4 +1,4 @@
-const SAVE_KEY = "kaarten_tcg_save_data_v3"; // Ganti versi agar save data bersih
+const SAVE_KEY = "kaarten_tcg_save_data_v3";
 
 const PlayerData = {
   username: "Duelist",

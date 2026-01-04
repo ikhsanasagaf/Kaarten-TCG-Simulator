@@ -61,10 +61,9 @@ export default class ProfileScene extends Phaser.Scene {
         cardBg.add(separator);
 
         // --- 5. BAGIAN KANAN (STATS) ---
-        // Kita atur ulang layout agar tidak menumpuk
-        const rightX = 50;  // Mulai dari agak kanan garis tengah
+        const rightX = 50;  
         const startY = -100; 
-        const gapY = 70;    // Jarak antar baris diperbesar
+        const gapY = 70;    
 
         // A. MONEY
         this.createStatRow(cardBg, rightX, startY, "Current Money", `$${PlayerData.getMoney()}`, '#ffd700');
@@ -148,7 +147,6 @@ export default class ProfileScene extends Phaser.Scene {
         });
 
         const unlockedCount = PlayerData.obtainedCardNames.length;
-        // Inventory Count dihapus sesuai request
         
         const completionRate = totalGameCards > 0 ? Math.floor((unlockedCount / totalGameCards) * 100) : 0;
         const collectionLevel = Math.floor(unlockedCount / 10) + 1;

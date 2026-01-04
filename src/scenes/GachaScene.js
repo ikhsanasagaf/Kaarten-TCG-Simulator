@@ -288,7 +288,6 @@ export default class GachaScene extends Phaser.Scene {
 
     this.time.delayedCall(1200, () => {
       this.createRevealAllButton();
-      // PERUBAHAN: Hanya munculkan tombol Back. Tombol Sell All menunggu checkAllCardsOpened
       this.tweens.add({ targets: this.backBtn, alpha: 1, duration: 500 });
     });
   }

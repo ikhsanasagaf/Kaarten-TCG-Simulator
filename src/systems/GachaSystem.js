@@ -42,8 +42,6 @@ export default class GachaSystem {
       const line = lines[i];
       if (!line) continue;
 
-      // Asumsi Format CSV:
-      // [0]Name, [1]Rarity, [2]Price, [3]Set, [4]Image
       const columns = line.split(",");
 
       const rawName = columns[0];

@@ -59,8 +59,6 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   createZoomContainer() {
-    // PERBAIKAN 1: Hapus setScrollFactor(0)
-    // Kita akan menggerakkan container ini secara manual mengikuti kamera
     this.zoomContainer = this.add
       .container(0, 0)
       .setDepth(100)
@@ -91,10 +89,8 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   showZoom(textureKey) {
-    this.isZooming = true; // Kunci interaksi lain
+    this.isZooming = true;
 
-    // PERBAIKAN 2: Pindahkan Container ke Posisi Kamera Saat Ini
-    // Ini menjamin Hit Area background berada tepat di layar user
     const camX = this.cameras.main.scrollX;
     const camY = this.cameras.main.scrollY;
     this.zoomContainer.setPosition(camX, camY);
@@ -109,10 +105,9 @@ export default class CollectionScene extends Phaser.Scene {
   }
 
   hideZoom() {
-    // Beri jeda sedikit agar klik tidak tembus
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
-      this.isZooming = false; // Buka kunci interaksi
+      this.isZooming = false;
     });
   }
 
