@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import GachaSystem from "../systems/GachaSystem";
 import Card from "../objects/Card";
 import PlayerData from "../utils/PlayerData";
+import { MISSION_TYPES } from "../data/MissionPool";
 
 export default class GachaScene extends Phaser.Scene {
   constructor() {
@@ -40,7 +41,7 @@ export default class GachaScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.statusText = this.add
-      .text(640, 360, "Memuat data kartu...", {
+      .text(640, 360, "Loading card pack...", {
         fontSize: "24px",
         color: "#ffffff",
         align: "center",
@@ -61,7 +62,7 @@ export default class GachaScene extends Phaser.Scene {
 
     // Tombol KEMBALI
     this.backBtn = this.add
-      .text(200, yPos, "< KEMBALI", {
+      .text(200, yPos, "< Back", {
         fontSize: "24px",
         backgroundColor: "#333",
         padding: { x: 20, y: 10 },
@@ -75,7 +76,7 @@ export default class GachaScene extends Phaser.Scene {
 
     // Tombol JUAL SEMUA (Awalnya Hidden & Non-Interactive)
     this.sellAllBtn = this.add
-      .text(1080, yPos, "JUAL SEMUA", {
+      .text(1080, yPos, "SELL ALL", {
         fontSize: "24px",
         backgroundColor: "#880000",
         padding: { x: 20, y: 10 },
@@ -85,7 +86,7 @@ export default class GachaScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .setAlpha(0)
-      .setVisible(false); // Pastikan tidak terlihat dan tidak bisa diklik
+      .setVisible(false);
 
     this.sellAllBtn.on("pointerdown", () => this.handleSellAll());
   }
@@ -107,13 +108,12 @@ export default class GachaScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     const closeText = this.add
-      .text(640, 650, "Klik di mana saja untuk tutup", {
+      .text(640, 650, "Click anywhere to close", {
         fontSize: "20px",
         color: "#aaa",
       })
       .setOrigin(0.5);
 
-    // Event Listeners
     bg.on("pointerdown", () => this.hideZoom());
     this.zoomedImage.on("pointerdown", () => this.hideZoom());
 
@@ -130,7 +130,6 @@ export default class GachaScene extends Phaser.Scene {
   }
 
   hideZoom() {
-    // FIX GHOST CLICK: Beri jeda 50ms agar klik tidak tembus ke kartu di bawahnya
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
     });
@@ -138,7 +137,6 @@ export default class GachaScene extends Phaser.Scene {
 
   // --- LOGIC UTAMA PENGECEKAN KARTU ---
   onCardOpened(cardInstance) {
-    // 1. Munculkan tombol jual kecil per kartu
     const index = this.displayedCards.findIndex(
       (item) => item.card === cardInstance
     );
@@ -154,25 +152,21 @@ export default class GachaScene extends Phaser.Scene {
       }
     }
 
-    // 2. Cek apakah SEMUA kartu sudah terbuka?
     this.checkAllCardsOpened();
   }
 
   checkAllCardsOpened() {
-    // Cek apakah ada setidaknya satu kartu yang belum terbuka (isFlipped == false)
     const isAllOpen = this.displayedCards.every(
       (item) => item.card && item.card.isFlipped
     );
 
     if (isAllOpen) {
-      // A. TAMPILKAN TOMBOL JUAL SEMUA
       if (!this.sellAllBtn.visible) {
         this.sellAllBtn.setVisible(true);
         this.sellAllBtn.setInteractive({ useHandCursor: true });
         this.tweens.add({ targets: this.sellAllBtn, alpha: 1, duration: 500 });
       }
 
-      // B. SEMBUNYIKAN TOMBOL BUKA SEMUA (Jika masih ada)
       if (this.revealAllBtn && this.revealAllBtn.visible) {
         this.revealAllBtn.disableInteractive();
         this.tweens.add({
@@ -195,25 +189,21 @@ export default class GachaScene extends Phaser.Scene {
     this.displayedCards = [];
     this.displayedButtons = [];
 
-    // Reset tombol jika main lagi
     if (this.sellAllBtn) {
       this.sellAllBtn.setAlpha(0).setVisible(false).disableInteractive();
     }
     if (this.revealAllBtn) {
-      this.revealAllBtn.destroy(); // Kita buat ulang nanti
+      this.revealAllBtn.destroy();
       this.revealAllBtn = null;
     }
 
     // --- SYSTEM ACHIEVEMENT ---
-    // 1. Track Pack Opened (+1)
     PlayerData.trackPackOpened(1);
 
+    // Misi "Open Pack" & "Get Rarity" sudah ditangani otomatis oleh GachaSystem ini:
     const results = this.gachaSystem.openPack(1, this.currentSet);
 
-    // 2. Add Cards & Check Specific Card / Level Achievement
     PlayerData.addCards(results);
-
-    // 3. Cek Full Collection Achievement (Butuh akses ke GachaSystem)
     PlayerData.checkAchievements(this.gachaSystem);
 
     let filesToLoad = 0;
@@ -232,7 +222,7 @@ export default class GachaScene extends Phaser.Scene {
     if (filesToLoad === 0) {
       this.displayCards(results);
     } else {
-      this.statusText.setText("Mengunduh gambar...");
+      this.statusText.setText("Loading card images...");
       this.load.once("complete", () => {
         this.displayCards(results);
       });
@@ -270,7 +260,7 @@ export default class GachaScene extends Phaser.Scene {
 
       const sellPrice = cardData.price || 0.1;
       const sellBtn = this.add
-        .text(x, y + 125, `JUAL $${sellPrice}`, {
+        .text(x, y + 125, `SELL $${sellPrice}`, {
           fontSize: "14px",
           backgroundColor: "#006600",
           color: "#fff",
@@ -313,6 +303,11 @@ export default class GachaScene extends Phaser.Scene {
     if (success) {
       item.sold = true;
       this.moneyText.setText(`Money: $${PlayerData.getMoney()}`);
+
+      // --- 2. UPDATE PROGRESS MISI SAAT JUAL KARTU ---
+      PlayerData.updateMissionProgress(MISSION_TYPES.SELL_CARD, 1);
+      PlayerData.updateMissionProgress(MISSION_TYPES.EARN_MONEY, price);
+
       this.tweens.add({
         targets: [item.card, btn],
         alpha: 0,
@@ -348,9 +343,8 @@ export default class GachaScene extends Phaser.Scene {
   createRevealAllButton() {
     this.statusText.setVisible(false);
 
-    // Simpan ke this.revealAllBtn agar bisa diakses di checkAllCardsOpened
     this.revealAllBtn = this.add
-      .text(640, 680, "BUKA SEMUA", {
+      .text(640, 680, "Open All", {
         fontSize: "24px",
         backgroundColor: "#ff8800",
         color: "#ffffff",

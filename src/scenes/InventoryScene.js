@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import PlayerData from "../utils/PlayerData";
+import { MISSION_TYPES } from "../data/MissionPool"; // <--- 1. TAMBAHKAN IMPORT INI
 
 export default class InventoryScene extends Phaser.Scene {
   constructor() {
@@ -85,7 +86,7 @@ export default class InventoryScene extends Phaser.Scene {
 
     // Teks Instruksi
     const closeText = this.add
-      .text(640, 650, "Klik di mana saja untuk tutup", {
+      .text(640, 650, "Click anywhere to close", {
         fontSize: "20px",
         color: "#aaa",
       })
@@ -115,7 +116,6 @@ export default class InventoryScene extends Phaser.Scene {
   }
 
   hideZoom() {
-    // PERBAIKAN: Gunakan delayedCall (50ms)
     // Mencegah "Ghost Click" (klik tembus ke kartu di bawahnya saat menutup)
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
@@ -132,7 +132,7 @@ export default class InventoryScene extends Phaser.Scene {
 
     if (myCards.length === 0) {
       const emptyText = this.add
-        .text(640, 200, "Belum ada kartu di inventory.", {
+        .text(640, 200, "No card has been obtained yet", {
           fontSize: "24px",
           color: "#aaa",
         })
@@ -214,6 +214,7 @@ export default class InventoryScene extends Phaser.Scene {
       btnSell.on("pointerout", () =>
         btnSell.setStyle({ backgroundColor: "#006600" })
       );
+
       btnSell.on("pointerdown", () => {
         // Cek flag juga untuk tombol sell
         if (this.isZooming) return;
@@ -221,6 +222,12 @@ export default class InventoryScene extends Phaser.Scene {
         const success = PlayerData.sellCard(cardData.name);
         if (success) {
           this.moneyText.setText(`Money: $${PlayerData.getMoney()}`);
+
+          // --- 2. UPDATE PROGRESS MISI (Tambahan Baru) ---
+          PlayerData.updateMissionProgress(MISSION_TYPES.SELL_CARD, 1);
+          PlayerData.updateMissionProgress(MISSION_TYPES.EARN_MONEY, sellPrice);
+          // ------------------------------------------------
+
           this.renderInventory();
         }
       });

@@ -8,6 +8,7 @@ import CollectionScene from "./scenes/CollectionScene";
 import InventoryScene from "./scenes/InventoryScene";
 import ProfileScene from "./scenes/ProfileScene";
 import AchievementScene from "./scenes/AchievmentScene";
+import DailyMissionScene from "./scenes/DailyMissionScene";
 
 // Konfigurasi Game
 const config = {
@@ -37,6 +38,7 @@ const config = {
     InventoryScene,
     ProfileScene,
     AchievementScene,
+    DailyMissionScene,
   ],
 };
 

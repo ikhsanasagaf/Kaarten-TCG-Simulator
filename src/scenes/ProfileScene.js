@@ -62,6 +62,7 @@ export default class ProfileScene extends Phaser.Scene {
         fontSize: "15px",
       })
       .setOrigin(0.5)
+      .setFlipX(true)
       .setInteractive({ useHandCursor: true });
 
     editBtn.on("pointerdown", () => this.handleEditName());

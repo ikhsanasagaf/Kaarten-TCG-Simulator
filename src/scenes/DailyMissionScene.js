@@ -1,24 +1,18 @@
 import Phaser from "phaser";
 import PlayerData from "../utils/PlayerData";
-import { ACHIEVEMENTS } from "../data/Achievements";
-import GachaSystem from "../systems/GachaSystem";
+import { MISSION_TYPES } from "../data/MissionPool";
 
-export default class AchievementScene extends Phaser.Scene {
+export default class DailyMissionScene extends Phaser.Scene {
   constructor() {
-    super("AchievementScene");
+    super("DailyMissionScene");
   }
 
   create() {
     // --- 1. SETUP DATA ---
-    this.gachaSystem = new GachaSystem(this);
-    this.totalGameCards = 0;
+    // Kita tidak butuh gachaSystem di sini, cukup load data player
+    PlayerData.load();
 
-    // Hitung total kartu dalam game untuk achievement progress
-    Object.keys(this.gachaSystem.cardPools).forEach((r) => {
-      this.totalGameCards += this.gachaSystem.cardPools[r].length;
-    });
-
-    // --- 2. CAMERA SCROLL ---
+    // --- 2. CAMERA SCROLL (Sama persis dengan Achievement) ---
     this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
       this.cameras.main.scrollY += deltaY * 0.5;
     });
@@ -30,7 +24,7 @@ export default class AchievementScene extends Phaser.Scene {
       .setDepth(10);
 
     this.add
-      .text(640, 60, "ACHIEVEMENTS", {
+      .text(640, 60, "DAILY MISSIONS", {
         fontSize: "40px",
         fontStyle: "bold",
         color: "#fff",
@@ -39,7 +33,7 @@ export default class AchievementScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(11);
 
-    // Teks Uang di Header
+    // Teks Uang di Header (Agar player lihat uang nambah pas claim)
     this.moneyText = this.add
       .text(1230, 60, `$${PlayerData.getMoney()}`, {
         fontSize: "28px",
@@ -77,27 +71,21 @@ export default class AchievementScene extends Phaser.Scene {
     const startY = 70;
     const gapY = 140;
 
-    ACHIEVEMENTS.forEach((ach, index) => {
-      // Ambil data progress Achievement
-      const prog = PlayerData.getAchievementProgress(
-        ach.type,
-        ach.target,
-        this.totalGameCards
-      );
-
-      const isClaimed = PlayerData.unlockedAchievements.includes(ach.id);
-      const isFinished = prog.current >= prog.max;
+    PlayerData.dailyMissions.forEach((mission, index) => {
+      const isFinished = mission.current >= mission.target;
+      const isClaimed = mission.isClaimed;
 
       // Logic Clamp untuk Progress Bar & Text
-      const displayCurrent = Math.min(prog.current, prog.max);
-      let percent = prog.max > 0 ? prog.current / prog.max : 0;
+      const displayCurrent = Math.min(mission.current, mission.target);
+      let percent = mission.target > 0 ? mission.current / mission.target : 0;
       if (percent > 1) percent = 1;
 
       const y = startY + index * gapY;
       const itemContainer = this.add.container(startX, y);
 
       // --- 1. Background Box ---
-      // Jika Claimed: Hijau Gelap, Jika Belum: Abu Gelap
+      // Jika Claimed: Hijau Gelap (Mirip Achievement Unlocked)
+      // Jika Belum: Abu Gelap
       const boxColor = isClaimed ? 0x224422 : 0x333333;
       const borderColor = isFinished || isClaimed ? 0x00ff00 : 0x555555;
 
@@ -105,11 +93,16 @@ export default class AchievementScene extends Phaser.Scene {
         .rectangle(0, 0, 900, 120, boxColor)
         .setStrokeStyle(2, borderColor);
 
-      // --- 2. Icon ---
-      // Achievement biasanya pakai Trophy (Selesai) atau Gembok (Belum)
-      let iconChar = "🔒";
-      if (isFinished) iconChar = "🏆";
-      if (isClaimed) iconChar = "✅"; // Mengikuti gaya 'Centang' jika sudah diklaim
+      // --- 2. Icon (Dinamis sesuai tipe) ---
+      let iconChar = "📜";
+      if (mission.type === MISSION_TYPES.LOGIN) iconChar = "📅";
+      if (mission.type === MISSION_TYPES.OPEN_PACK) iconChar = "📦";
+      if (mission.type === MISSION_TYPES.GET_RARITY) iconChar = "✨";
+      if (mission.type === MISSION_TYPES.SELL_CARD) iconChar = "💰";
+      if (mission.type === MISSION_TYPES.EARN_MONEY) iconChar = "💵";
+
+      // Jika sudah diklaim, ganti jadi Centang
+      if (isClaimed) iconChar = "✅";
 
       const icon = this.add
         .text(-400, 0, iconChar, {
@@ -123,7 +116,7 @@ export default class AchievementScene extends Phaser.Scene {
       const titleColor = isFinished || isClaimed ? "#ffd700" : "#aaaaaa";
 
       const title = this.add
-        .text(-350, -35, ach.title, {
+        .text(-350, -35, mission.title, {
           fontSize: "28px",
           fontStyle: "bold",
           color: titleColor,
@@ -131,7 +124,7 @@ export default class AchievementScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
       const desc = this.add
-        .text(-350, 0, ach.description, {
+        .text(-350, 0, mission.description, {
           fontSize: "18px",
           color: "#dddddd",
           fontStyle: "italic",
@@ -156,16 +149,8 @@ export default class AchievementScene extends Phaser.Scene {
         .rectangle(barX, barY, fillW, barH, fillColor)
         .setOrigin(0, 0.5);
 
-      // Text angka progress
-      const progressTextStr =
-        ach.type === "SPECIFIC_CARD"
-          ? isFinished || isClaimed
-            ? "Obtained"
-            : "Not Obtained"
-          : `${displayCurrent} / ${prog.max}`;
-
       const progressTxt = this.add
-        .text(barX + barW + 15, barY, progressTextStr, {
+        .text(barX + barW + 15, barY, `${displayCurrent} / ${mission.target}`, {
           fontSize: "16px",
           color: "#ffffff",
           fontStyle: "bold",
@@ -173,11 +158,12 @@ export default class AchievementScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
       // --- 5. Status / Button (Kanan) ---
+      // Ini bagian yang membedakan Misi dengan Achievement
 
       itemContainer.add([bg, icon, title, desc, barBg, barFill, progressTxt]);
 
       if (isClaimed) {
-        // A. SUDAH DIKLAIM -> Teks COMPLETED
+        // A. JIKA SUDAH DIKLAIM (Teks COMPLETED)
         const statusTxt = this.add
           .text(430, 0, "COMPLETED", {
             fontSize: "20px",
@@ -187,7 +173,7 @@ export default class AchievementScene extends Phaser.Scene {
           .setOrigin(1, 0.5);
         itemContainer.add(statusTxt);
       } else if (isFinished) {
-        // B. SIAP KLAIM -> Tombol CLAIM
+        // B. JIKA SELESAI TAPI BELUM KLAIM (Tombol CLAIM)
         const claimBtn = this.add
           .text(430, 0, " CLAIM ", {
             fontSize: "22px",
@@ -199,7 +185,7 @@ export default class AchievementScene extends Phaser.Scene {
           .setOrigin(1, 0.5)
           .setInteractive({ useHandCursor: true });
 
-        // Animasi Denyut
+        // Efek Denyut
         this.tweens.add({
           targets: claimBtn,
           scale: 1.1,
@@ -210,18 +196,20 @@ export default class AchievementScene extends Phaser.Scene {
 
         // Interaksi Klik Claim
         claimBtn.on("pointerdown", () => {
-          const success = PlayerData.claimAchievement(ach.id);
+          const success = PlayerData.claimMissionReward(mission.id);
           if (success) {
+            // Update Uang di Header
             this.moneyText.setText(`$${PlayerData.getMoney()}`);
+            // Refresh List agar tombol berubah
             this.renderList();
           }
         });
 
         itemContainer.add(claimBtn);
       } else {
-        // C. BELUM SELESAI -> Info Reward (Tanpa tulisan Locked)
+        // C. JIKA BELUM SELESAI (Info Reward)
         const rewardTxt = this.add
-          .text(430, 0, `Reward: $${ach.reward}`, {
+          .text(430, 0, `Reward: $${mission.reward}`, {
             fontSize: "20px",
             color: "#ffff00",
             fontStyle: "bold",
@@ -235,7 +223,7 @@ export default class AchievementScene extends Phaser.Scene {
     });
 
     // Set Bounds Camera sesuai panjang list
-    const totalHeight = 160 + ACHIEVEMENTS.length * gapY + 100;
+    const totalHeight = 160 + PlayerData.dailyMissions.length * gapY + 100;
     this.cameras.main.setBounds(0, 0, 1280, Math.max(720, totalHeight));
   }
 }

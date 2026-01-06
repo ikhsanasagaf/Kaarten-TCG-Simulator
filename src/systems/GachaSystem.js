@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import PlayerData from "../utils/PlayerData"; // <--- TAMBAHAN: Import PlayerData
+import { MISSION_TYPES } from "../data/MissionPool"; // <--- TAMBAHAN: Import Tipe Misi
 
 export const RARITY = {
   COMMON: "Common",
@@ -21,7 +23,6 @@ export default class GachaSystem {
     };
 
     // Rasio Foil Slot (Probabilitas dalam desimal)
-    // 1 in 6 = ~0.166, 1 in 12 = ~0.083, 1 in 31 = ~0.032
     this.foilOdds = {
       [RARITY.SECRET_RARE]: 1 / 31,
       [RARITY.ULTRA_RARE]: 1 / 12,
@@ -46,7 +47,7 @@ export default class GachaSystem {
 
       const rawName = columns[0];
       const rawRarityStr = columns[1] ? columns[1].trim() : "";
-      const rawPrice = columns[2] ? columns[2].trim() : "0"; // Ambil Harga
+      const rawPrice = columns[2] ? columns[2].trim() : "0";
       const setName = columns[3] ? columns[3].trim() : "Unknown Set";
       const imageUrl = columns[4];
 
@@ -63,9 +64,9 @@ export default class GachaSystem {
 
       this.availableSets.add(setName);
 
-      // Bersihkan format harga (misal "$2.50" -> 2.50)
+      // Bersihkan format harga
       let price = parseFloat(rawPrice.replace(/[^0-9.]/g, ""));
-      if (isNaN(price)) price = 0.1; // Default jika error
+      if (isNaN(price)) price = 0.1;
 
       // Mapping Rarity
       let gameRarity = RARITY.COMMON;
@@ -79,7 +80,7 @@ export default class GachaSystem {
           name: rawName,
           rarity: gameRarity,
           set_name: setName,
-          price: price, // Simpan harga
+          price: price,
           image: imageUrl,
         });
       }
@@ -109,7 +110,6 @@ export default class GachaSystem {
     }
 
     if (!pool || pool.length === 0) {
-      // Emergency Fallback jika pool benar-benar kosong
       return { name: "MissingNo", rarity: RARITY.COMMON, price: 0 };
     }
 
@@ -133,22 +133,27 @@ export default class GachaSystem {
     results.push(this.getRandomCard(RARITY.RARE, targetSet));
 
     // 3. 1 Kartu "Foil Slot" (Wildcard)
-    // Cek RNG dari yang terlangka dulu (Waterfall logic)
     const rand = Math.random();
 
     if (rand < this.foilOdds[RARITY.SECRET_RARE]) {
-      // Dapat Secret Rare (1 in 31)
       results.push(this.getRandomCard(RARITY.SECRET_RARE, targetSet));
     } else if (rand < this.foilOdds[RARITY.ULTRA_RARE]) {
-      // Dapat Ultra Rare (1 in 12)
       results.push(this.getRandomCard(RARITY.ULTRA_RARE, targetSet));
     } else if (rand < this.foilOdds[RARITY.SUPER_RARE]) {
-      // Dapat Super Rare (1 in 6)
       results.push(this.getRandomCard(RARITY.SUPER_RARE, targetSet));
     } else {
-      // Apes, dapat Common lagi
       results.push(this.getRandomCard(RARITY.COMMON, targetSet));
     }
+
+    PlayerData.updateMissionProgress(MISSION_TYPES.OPEN_PACK, 1, targetSet);
+
+    results.forEach((card) => {
+      PlayerData.updateMissionProgress(
+        MISSION_TYPES.GET_RARITY,
+        1,
+        card.rarity
+      );
+    });
 
     return results;
   }

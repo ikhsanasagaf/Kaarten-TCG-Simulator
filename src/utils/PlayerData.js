@@ -1,11 +1,12 @@
 import { ACHIEVEMENTS } from "../data/Achievements";
+import { MISSION_POOL, MISSION_TYPES } from "../data/MissionPool";
 
 const SAVE_KEY = "kaarten_tcg_save_data_v6";
 
 const PlayerData = {
   username: "Duelist",
-  money: 50,
-  level: 1, // Level akan otomatis di-update oleh sistem
+  money: 20,
+  level: 1,
   currentExp: 0,
   collection: [],
   obtainedCardNames: [],
@@ -14,11 +15,103 @@ const PlayerData = {
     totalMoneySpent: 0,
   },
   unlockedAchievements: [],
+  dailyMissions: [],
+  lastLoginDate: null,
 
-  // --- FUNGSI BARU: HITUNG LEVEL OTOMATIS ---
+  // --- FUNGSI HITUNG LEVEL OTOMATIS ---
   calculateLevel: function () {
     // Rumus: Setiap 10 kartu unik = Level naik 1
     return Math.floor(this.obtainedCardNames.length / 10) + 1;
+  },
+
+  checkDailyLogin: function () {
+    const today = new Date().toDateString();
+
+    if (this.lastLoginDate !== today) {
+      console.log("Hari baru! Reset Misi Harian...");
+      this.lastLoginDate = today;
+      this.generateDailyMissions();
+
+      // Otomatis progress misi login jadi 1/1
+      this.updateMissionProgress(MISSION_TYPES.LOGIN, 1);
+    }
+  },
+
+  // Generate Misi Baru
+  generateDailyMissions: function () {
+    this.dailyMissions = [];
+
+    // A. Buat salinan dari MISSION_POOL agar data asli tidak rusak
+    let pool = [...MISSION_POOL];
+
+    // B. Acak urutan array (Algoritma Fisher-Yates Shuffle)
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    // C. Ambil 3 Misi Teratas saja
+    const selectedMissions = pool.slice(0, 3);
+
+    // D. Masukkan ke dalam status pemain
+    selectedMissions.forEach((template) => {
+      this.dailyMissions.push({
+        id: template.id,
+        title: template.title,
+        description: template.description,
+        type: template.type,
+        target: template.target,
+        reward: template.reward,
+        targetParam: template.targetParam,
+        current: 0, // Reset progress
+        isClaimed: false, // Reset status klaim
+      });
+    });
+
+    console.log("Misi Harian Baru Tergenerate (3 Acak):", this.dailyMissions);
+    this.save();
+  },
+
+  // Update Progress Misi Harian
+  updateMissionProgress: function (type, amount = 1, param = null) {
+    let isUpdated = false;
+
+    this.dailyMissions.forEach((mission) => {
+      if (
+        mission.type === type &&
+        !mission.isClaimed &&
+        mission.current < mission.target
+      ) {
+        if (mission.targetParam) {
+          if (mission.targetParam !== param) return;
+        }
+
+        mission.current += amount;
+
+        // Clamp
+        if (mission.current > mission.target) mission.current = mission.target;
+
+        isUpdated = true;
+        console.log(
+          `Mission Progress: ${mission.title} -> ${mission.current}/${mission.target}`
+        );
+      }
+    });
+
+    if (isUpdated) this.save();
+  },
+
+  // Klaim Reward Misi Harian
+  claimMissionReward: function (missionId) {
+    const mission = this.dailyMissions.find((m) => m.id === missionId);
+
+    if (mission && mission.current >= mission.target && !mission.isClaimed) {
+      mission.isClaimed = true;
+      this.money += mission.reward;
+      this.save();
+      return true;
+    }
+    return false;
   },
 
   load: function () {
@@ -26,6 +119,7 @@ const PlayerData = {
     if (savedString) {
       try {
         const savedData = JSON.parse(savedString);
+
         this.username = savedData.username || "Duelist";
         this.money = savedData.money !== undefined ? savedData.money : 50;
         this.currentExp = savedData.currentExp || 0;
@@ -36,8 +130,9 @@ const PlayerData = {
           totalMoneySpent: 0,
         };
         this.unlockedAchievements = savedData.unlockedAchievements || [];
+        this.dailyMissions = savedData.dailyMissions || [];
+        this.lastLoginDate = savedData.lastLoginDate || null;
 
-        // Backward Compatibility
         if (this.obtainedCardNames.length === 0 && this.collection.length > 0) {
           this.collection.forEach((c) => {
             if (!this.obtainedCardNames.includes(c.name)) {
@@ -46,10 +141,10 @@ const PlayerData = {
           });
         }
 
-        // PERBAIKAN BUG: Hitung ulang level saat Load agar sinkron dengan progress
         this.level = this.calculateLevel();
       } catch (e) {
         console.error("[PlayerData] Gagal memuat save data:", e);
+        this.save();
       }
     } else {
       this.save();
@@ -60,17 +155,19 @@ const PlayerData = {
     const dataToSave = {
       username: this.username,
       money: this.money,
-      level: this.level, // Simpan level yang sudah terhitung
+      level: this.level,
       currentExp: this.currentExp,
       collection: this.collection,
       obtainedCardNames: this.obtainedCardNames,
       stats: this.stats,
       unlockedAchievements: this.unlockedAchievements,
+      dailyMissions: this.dailyMissions,
+      lastLoginDate: this.lastLoginDate,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(dataToSave));
   },
 
-  // --- FUNGSI HELPER UNTUK ACHIEVEMENT SCENE ---
+  // Helper Achievement Progress
   getAchievementProgress: function (type, target, totalGameCards = 0) {
     let current = 0;
     let max = target;
@@ -83,7 +180,6 @@ const PlayerData = {
         current = this.stats.totalMoneySpent;
         break;
       case "COLLECTION_LEVEL":
-        // Gunakan fungsi kalkulasi agar konsisten
         current = this.calculateLevel();
         break;
       case "SPECIFIC_CARD":
@@ -105,66 +201,46 @@ const PlayerData = {
 
   trackPackOpened: function (quantity) {
     this.stats.totalPacksOpened += quantity;
-    this.checkAchievements();
+    // this.checkAchievements(); // Opsional: Tidak perlu cek trigger karena sekarang manual claim
     this.save();
   },
 
   trackMoneySpent: function (amount) {
     this.stats.totalMoneySpent += amount;
-    this.checkAchievements();
     this.save();
   },
 
+  // --- MODIFIKASI: HANYA CEK, JANGAN AUTO-CLAIM ---
   checkAchievements: function (gachaSystemInstance = null) {
-    let newUnlock = false;
+    // Fungsi ini sekarang hanya untuk debugging atau notifikasi popup (jika ada).
+    // Tidak lagi mengubah state unlocks secara otomatis.
+    console.log(
+      "[PlayerData] Data updated. Check Achievement menu to claim rewards."
+    );
+  },
 
-    // Gunakan fungsi kalkulasi agar konsisten
-    const collectionLevel = this.calculateLevel();
+  // --- FUNGSI BARU: MANUAL CLAIM ACHIEVEMENT ---
+  claimAchievement: function (achId) {
+    // 1. Cek apakah sudah pernah diklaim?
+    if (this.unlockedAchievements.includes(achId)) return false;
 
-    let completionRate = 0;
-    if (gachaSystemInstance) {
-      let totalCards = 0;
-      const pools = gachaSystemInstance.cardPools;
-      Object.keys(pools).forEach((r) => (totalCards += pools[r].length));
-      completionRate =
-        totalCards > 0
-          ? Math.floor((this.obtainedCardNames.length / totalCards) * 100)
-          : 0;
-    }
+    // 2. Cari data achievement
+    const achData = ACHIEVEMENTS.find((a) => a.id === achId);
+    if (!achData) return false;
 
-    ACHIEVEMENTS.forEach((ach) => {
-      if (this.unlockedAchievements.includes(ach.id)) return;
+    // 3. Verifikasi apakah syarat benar-benar terpenuhi? (Double Check)
+    //    Ini penting agar user tidak menembak fungsi ini via console
+    //    Namun untuk simplifikasi, kita asumsikan UI hanya memanggil ini jika tombol aktif.
 
-      let passed = false;
-      switch (ach.type) {
-        case "PACKS_OPENED":
-          if (this.stats.totalPacksOpened >= ach.target) passed = true;
-          break;
-        case "MONEY_SPENT":
-          if (this.stats.totalMoneySpent >= ach.target) passed = true;
-          break;
-        case "SPECIFIC_CARD":
-          if (this.obtainedCardNames.includes(ach.target)) passed = true;
-          break;
-        case "COLLECTION_LEVEL":
-          if (collectionLevel >= ach.target) passed = true;
-          break;
-        case "FULL_COLLECTION":
-          if (completionRate >= ach.target) passed = true;
-          break;
-      }
+    // 4. Berikan Hadiah
+    this.addMoney(achData.reward);
 
-      if (passed) {
-        this.unlockedAchievements.push(ach.id);
-        newUnlock = true;
-        if (ach.reward > 0) {
-          this.addMoney(ach.reward);
-        }
-        console.log(`ACHIEVEMENT UNLOCKED: ${ach.title} (+$${ach.reward})`);
-      }
-    });
+    // 5. Tandai sebagai "Claimed"
+    this.unlockedAchievements.push(achId);
+    this.save();
 
-    if (newUnlock) this.save();
+    console.log(`ACHIEVEMENT CLAIMED: ${achData.title} (+$${achData.reward})`);
+    return true;
   },
 
   getMoney: function () {
@@ -219,10 +295,8 @@ const PlayerData = {
       }
     });
 
-    // PERBAIKAN BUG: Update level setiap kali dapat kartu baru
     this.level = this.calculateLevel();
-
-    this.checkAchievements();
+    // this.checkAchievements(); // Tidak perlu auto-check
     this.save();
   },
 
