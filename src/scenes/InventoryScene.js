@@ -1,21 +1,17 @@
 import Phaser from "phaser";
 import PlayerData from "../utils/PlayerData";
-import { MISSION_TYPES } from "../data/MissionPool"; // <--- 1. TAMBAHKAN IMPORT INI
+import { MISSION_TYPES } from "../data/MissionPool";
 
 export default class InventoryScene extends Phaser.Scene {
   constructor() {
     super("InventoryScene");
-    this.isZooming = false; // Flag untuk mencegah interaksi saat zoom
+    this.isZooming = false;
   }
 
   create() {
     // --- SETUP CAMERA SCROLL ---
     this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-      // LOGIKA BARU: Cek flag isZooming
-      if (this.isZooming) {
-        return; // Hentikan fungsi, jangan scroll!
-      }
-
+      if (this.isZooming) return;
       this.cameras.main.scrollY += deltaY * 0.5;
     });
 
@@ -68,23 +64,19 @@ export default class InventoryScene extends Phaser.Scene {
   }
 
   createZoomContainer() {
-    // Container Zoom
     this.zoomContainer = this.add
       .container(0, 0)
       .setDepth(100)
       .setVisible(false);
 
-    // Background Gelap (Dimmer) - KLIK UNTUK TUTUP
     const bg = this.add
       .rectangle(640, 360, 1280, 720, 0x000000, 0.85)
       .setInteractive({ useHandCursor: true });
 
-    // Gambar Zoom - KLIK UNTUK TUTUP
     this.zoomedImage = this.add
       .image(640, 360, "card_back")
       .setInteractive({ useHandCursor: true });
 
-    // Teks Instruksi
     const closeText = this.add
       .text(640, 650, "Click anywhere to close", {
         fontSize: "20px",
@@ -92,7 +84,6 @@ export default class InventoryScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Event Listeners
     bg.on("pointerdown", () => this.hideZoom());
     this.zoomedImage.on("pointerdown", () => this.hideZoom());
 
@@ -100,13 +91,11 @@ export default class InventoryScene extends Phaser.Scene {
   }
 
   showZoom(textureKey) {
-    this.isZooming = true; // Kunci scroll dan interaksi lain
-
+    this.isZooming = true;
     this.zoomContainer.setPosition(
       this.cameras.main.scrollX,
       this.cameras.main.scrollY
     );
-
     this.zoomedImage.setTexture(textureKey);
     this.zoomedImage.setScale(1);
     const targetHeight = 440;
@@ -116,19 +105,36 @@ export default class InventoryScene extends Phaser.Scene {
   }
 
   hideZoom() {
-    // Mencegah "Ghost Click" (klik tembus ke kartu di bawahnya saat menutup)
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
-      this.isZooming = false; // Buka kunci
+      this.isZooming = false;
     });
   }
 
+  // --- BAGIAN INI YANG DIROMBAK TOTAL UNTUK COLOR CODING ---
   renderInventory() {
     const previousScrollY = this.cameras.main.scrollY;
     this.cardsContainer.removeAll(true);
-    const myCards = PlayerData.collection.sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+
+    // 1. Definisikan Bobot dan Warna Rarity
+    const RARITY_CONFIG = {
+      "Secret Rare": { weight: 5, color: 0xff0000 }, // Merah
+      "Ultra Rare": { weight: 4, color: 0xffd700 }, // Emas
+      "Super Rare": { weight: 3, color: 0xaa00ff }, // Ungu Neon
+      Rare: { weight: 2, color: 0x0088ff }, // Biru Neon
+      Common: { weight: 1, color: 0xaaaaaa }, // Abu-abu
+    };
+
+    // 2. Sorting Logic: Rarity Tinggi dulu, baru Abjad A-Z
+    const myCards = PlayerData.collection.sort((a, b) => {
+      const wA = RARITY_CONFIG[a.rarity]?.weight || 0;
+      const wB = RARITY_CONFIG[b.rarity]?.weight || 0;
+
+      if (wB !== wA) {
+        return wB - wA; // Descending (Besar ke Kecil)
+      }
+      return a.name.localeCompare(b.name); // Ascending (A ke Z)
+    });
 
     if (myCards.length === 0) {
       const emptyText = this.add
@@ -155,6 +161,31 @@ export default class InventoryScene extends Phaser.Scene {
       const y = row * gapY;
       const cardItem = this.add.container(x, y);
 
+      // --- VISUAL EFEK GLOW ---
+      const rarityInfo =
+        RARITY_CONFIG[cardData.rarity] || RARITY_CONFIG["Common"];
+      const glowColor = rarityInfo.color;
+
+      // Buat kotak glow di belakang kartu (sedikit lebih besar)
+      const borderGlow = this.add
+        .rectangle(0, 0, cardW + 10, cardH + 10, glowColor)
+        .setOrigin(0.5)
+        .setAlpha(0.6); // Transparan agar jadi efek cahaya
+
+      // Animasi Denyut untuk kartu mahal (Ultra & Secret)
+      if (rarityInfo.weight >= 4) {
+        this.tweens.add({
+          targets: borderGlow,
+          alpha: 0.2,
+          duration: 1000,
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+
+      cardItem.add(borderGlow);
+
+      // --- GAMBAR KARTU ---
       let textureKey = cardData.name;
       let img;
       if (!this.textures.exists(textureKey)) {
@@ -166,12 +197,12 @@ export default class InventoryScene extends Phaser.Scene {
 
       img.setInteractive({ useHandCursor: true });
       img.on("pointerdown", () => {
-        // Cek flag isZooming agar tidak bisa klik kartu di bawah saat sedang zoom
         if (this.isZooming) return;
         this.showZoom(cardData.name);
       });
       cardItem.add(img);
 
+      // --- BADGE JUMLAH ---
       const badgeBg = this.add
         .rectangle(55, -95, 30, 20, 0x000000, 0.7)
         .setStrokeStyle(1, 0xffffff, 0.5)
@@ -185,15 +216,23 @@ export default class InventoryScene extends Phaser.Scene {
         .setOrigin(0.5);
       cardItem.add([badgeBg, badgeText]);
 
+      // --- NAMA KARTU (WARNA SESUAI RARITY) ---
+      // Konversi integer color (0xff0000) ke string hex ("#ff0000")
+      const hexColorStr = "#" + glowColor.toString(16).padStart(6, "0");
+
       const nameTxt = this.add
-        .text(0, 120, cardData.name, {
+        .text(0, 125, cardData.name, {
           fontSize: "14px",
           align: "center",
           wordWrap: { width: 140 },
-          color: "#fff",
+          fontStyle: "bold",
+          color: hexColorStr, // Pakai warna rarity
+          stroke: "#000000",
+          strokeThickness: 3,
         })
         .setOrigin(0.5, 0);
 
+      // --- TOMBOL JUAL ---
       const sellPrice = cardData.price || 0.1;
       const btnSell = this.add
         .text(0, 180, `SELL $${sellPrice}`, {
@@ -216,17 +255,14 @@ export default class InventoryScene extends Phaser.Scene {
       );
 
       btnSell.on("pointerdown", () => {
-        // Cek flag juga untuk tombol sell
         if (this.isZooming) return;
 
         const success = PlayerData.sellCard(cardData.name);
         if (success) {
           this.moneyText.setText(`Money: $${PlayerData.getMoney()}`);
 
-          // --- 2. UPDATE PROGRESS MISI (Tambahan Baru) ---
           PlayerData.updateMissionProgress(MISSION_TYPES.SELL_CARD, 1);
           PlayerData.updateMissionProgress(MISSION_TYPES.EARN_MONEY, sellPrice);
-          // ------------------------------------------------
 
           this.renderInventory();
         }
