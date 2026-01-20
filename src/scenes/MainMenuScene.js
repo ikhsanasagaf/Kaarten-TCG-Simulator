@@ -12,12 +12,19 @@ export default class MainMenuScene extends Phaser.Scene {
     PlayerData.checkDailyLogin();
 
     // --- 1.5. AUDIO BACKGROUND ---
-    const music = this.sound.get('bgm_main_menu');
-    if (music && music.isPlaying) {
-      // Seamless transition dari Mission Scene
+    let music = this.sound.get('bgm_main_menu');
+
+    // Jika belum ada instance sama sekali, buat baru
+    if (!music) {
+      music = this.sound.add('bgm_main_menu', { loop: true, volume: 0.5 });
+    }
+
+    if (music.isPlaying) {
+      // Jika sedang main, biarkan (Seamless)
     } else {
+      // Jika tidak main (mungkin baru balik dari Shop), stop lagu lain dan mainkan ini
       this.sound.stopAll();
-      this.sound.play('bgm_main_menu', { loop: true, volume: 0.5 });
+      music.play();
     }
 
     // --- 2. BACKGROUND IMAGE ---

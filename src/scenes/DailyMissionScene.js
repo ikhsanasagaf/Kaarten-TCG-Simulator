@@ -13,14 +13,15 @@ export default class DailyMissionScene extends Phaser.Scene {
     PlayerData.load();
 
     // --- AUDIO ---
-    // Seamless Logic: Cek apakah bgm_main_menu sedang main?
-    // Misi menggunakan lagu yang sama dengan Main Menu
-    const music = this.sound.get('bgm_main_menu');
-    if (music && music.isPlaying) {
-      // Biarkan main
-    } else {
+    let music = this.sound.get('bgm_main_menu');
+
+    if (!music) {
+      music = this.sound.add('bgm_main_menu', { loop: true, volume: 0.5 });
+    }
+
+    if (!music.isPlaying) {
       this.sound.stopAll();
-      this.sound.play('bgm_main_menu', { loop: true, volume: 0.5 });
+      music.play();
     }
 
     // --- 2. CAMERA SCROLL (Sama persis dengan Achievement) ---

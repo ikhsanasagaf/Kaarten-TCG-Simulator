@@ -12,14 +12,15 @@ export default class ProfileScene extends Phaser.Scene {
     const stats = this.calculateStats();
 
     // --- AUDIO ---
-    // Seamless Logic: Cek apakah bgm_main_menu sedang main?
-    // Profile menggunakan lagu yang sama dengan Main Menu
-    const music = this.sound.get('bgm_main_menu');
-    if (music && music.isPlaying) {
-      // Biarkan main
-    } else {
+    let music = this.sound.get('bgm_main_menu');
+
+    if (!music) {
+      music = this.sound.add('bgm_main_menu', { loop: true, volume: 0.5 });
+    }
+
+    if (!music.isPlaying) {
       this.sound.stopAll();
-      this.sound.play('bgm_main_menu', { loop: true, volume: 0.5 });
+      music.play();
     }
 
     // --- 1. BACKGROUND LAYER ---
