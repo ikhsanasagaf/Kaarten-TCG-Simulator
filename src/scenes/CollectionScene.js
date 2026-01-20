@@ -17,17 +17,26 @@ export default class CollectionScene extends Phaser.Scene {
     this.sound.stopAll();
     this.sound.play('bgm_collection', { loop: true, volume: 0.5 });
 
+    // --- BACKGROUND IMAGE ---
+    const bg = this.add.image(640, 360, 'collection_bg');
+    bg.setDisplaySize(1280, 720);
+    bg.setScrollFactor(0);
+    bg.setDepth(-10);
+
     // --- CAMERA SCROLL ---
     this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
       if (this.isZooming) return; // Stop scroll saat zoom
       this.cameras.main.scrollY += deltaY * 0.5;
     });
 
-    // --- HEADER UI ---
-    this.add
-      .rectangle(640, 80, 1280, 160, 0x1a1a2e)
-      .setScrollFactor(0)
-      .setDepth(10);
+    // --- HEADER UI (Glassmorphic) ---
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x000000, 0.5);
+    headerBg.fillRect(0, 0, 1280, 160);
+    headerBg.lineStyle(1, 0xffd700, 0.3);
+    headerBg.lineBetween(0, 160, 1280, 160);
+    headerBg.setScrollFactor(0);
+    headerBg.setDepth(10);
     this.add
       .text(640, 35, "MY ALBUM", {
         fontSize: "32px",

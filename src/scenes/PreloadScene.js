@@ -47,6 +47,12 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.setPath(''); // Reset path agar bersih kembali
 
     this.load.image('card_back', 'assets/sprites/card_back.png');
+    this.load.image('main_menu_bg', 'assets/sprites/main_menu_bg.png');
+    this.load.image('shop_bg', 'assets/sprites/shop_bg.png');
+    this.load.image('gacha_bg', 'assets/sprites/gacha_bg.png');
+    this.load.image('achievement_bg', 'assets/sprites/achievement.png');
+    this.load.image('inventory_bg', 'assets/sprites/inventory.png');
+    this.load.image('collection_bg', 'assets/sprites/colletion.png');
 
     // B. Load Audio
     this.load.audio('bgm_main_menu', 'assets/audio/main_menu.mp3');

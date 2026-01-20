@@ -19,11 +19,20 @@ export default class InventoryScene extends Phaser.Scene {
     this.sound.stopAll();
     this.sound.play('bgm_inventory', { loop: true, volume: 0.5 });
 
-    // --- HEADER UI ---
-    this.add
-      .rectangle(640, 60, 1280, 120, 0x222222)
-      .setScrollFactor(0)
-      .setDepth(10);
+    // --- BACKGROUND IMAGE ---
+    const bg = this.add.image(640, 360, 'inventory_bg');
+    bg.setDisplaySize(1280, 720);
+    bg.setScrollFactor(0);
+    bg.setDepth(-10);
+
+    // --- HEADER UI (Glassmorphic) ---
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x000000, 0.5);
+    headerBg.fillRect(0, 0, 1280, 120);
+    headerBg.lineStyle(1, 0x00ff88, 0.3);
+    headerBg.lineBetween(0, 120, 1280, 120);
+    headerBg.setScrollFactor(0);
+    headerBg.setDepth(10);
 
     this.add
       .text(640, 60, "MY INVENTORY", {

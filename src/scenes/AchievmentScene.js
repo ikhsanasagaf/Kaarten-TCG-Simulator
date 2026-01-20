@@ -22,16 +22,25 @@ export default class AchievementScene extends Phaser.Scene {
     this.sound.stopAll();
     this.sound.play('bgm_achievement', { loop: true, volume: 0.5 });
 
+    // --- BACKGROUND IMAGE ---
+    const bg = this.add.image(640, 360, 'achievement_bg');
+    bg.setDisplaySize(1280, 720);
+    bg.setScrollFactor(0);
+    bg.setDepth(-10);
+
     // --- 2. CAMERA SCROLL ---
     this.input.on("wheel", (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
       this.cameras.main.scrollY += deltaY * 0.5;
     });
 
-    // --- 3. HEADER UI ---
-    this.add
-      .rectangle(640, 60, 1280, 120, 0x1a1a2e)
-      .setScrollFactor(0)
-      .setDepth(10);
+    // --- 3. HEADER UI (Glassmorphic) ---
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x000000, 0.5); // Semi-transparent
+    headerBg.fillRect(0, 0, 1280, 120);
+    headerBg.lineStyle(1, 0xffd700, 0.3); // Gold border
+    headerBg.lineBetween(0, 120, 1280, 120);
+    headerBg.setScrollFactor(0);
+    headerBg.setDepth(10);
 
     this.add
       .text(640, 60, "ACHIEVEMENTS", {
@@ -100,14 +109,47 @@ export default class AchievementScene extends Phaser.Scene {
       const y = startY + index * gapY;
       const itemContainer = this.add.container(startX, y);
 
-      // --- 1. Background Box ---
-      // Jika Claimed: Hijau Gelap, Jika Belum: Abu Gelap
-      const boxColor = isClaimed ? 0x224422 : 0x333333;
-      const borderColor = isFinished || isClaimed ? 0x00ff00 : 0x555555;
+      // --- 1. Background Box (Glassmorphic) ---
+      const bgGraphics = this.add.graphics();
 
-      const bg = this.add
-        .rectangle(0, 0, 900, 120, boxColor)
-        .setStrokeStyle(2, borderColor);
+      // Determine colors based on state
+      let fillColor, fillAlpha, borderColor, borderAlpha;
+
+      if (isClaimed) {
+        // Completed: Golden glow
+        fillColor = 0xffd700;
+        fillAlpha = 0.3; // Increased from 0.15
+        borderColor = 0xffd700;
+        borderAlpha = 0.9; // Increased from 0.8
+      } else if (isFinished) {
+        // Ready to claim: Green glow
+        fillColor = 0x00ff88;
+        fillAlpha = 0.3; // Increased from 0.15
+        borderColor = 0x00ff88;
+        borderAlpha = 1.0; // Increased from 0.9
+      } else {
+        // Locked: Dark translucent
+        fillColor = 0x000000;
+        fillAlpha = 0.6; // Increased from 0.4
+        borderColor = 0x666666;
+        borderAlpha = 0.7; // Increased from 0.5
+      }
+
+      // Draw glassmorphic box
+      bgGraphics.fillStyle(fillColor, fillAlpha);
+      bgGraphics.fillRoundedRect(-450, -60, 900, 120, 10);
+
+      // Border
+      bgGraphics.lineStyle(2, borderColor, borderAlpha);
+      bgGraphics.strokeRoundedRect(-450, -60, 900, 120, 10);
+
+      // Inner highlight (top edge for glass effect)
+      if (isClaimed || isFinished) {
+        bgGraphics.lineStyle(1, 0xffffff, 0.2);
+        bgGraphics.strokeRoundedRect(-448, -58, 896, 60, 8);
+      }
+
+      itemContainer.add(bgGraphics);
 
       // --- 2. Icon ---
       // Achievement biasanya pakai Trophy (Selesai) atau Gembok (Belum)
@@ -153,11 +195,11 @@ export default class AchievementScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
       // Warna Bar: Hijau jika selesai, Biru jika progress
-      const fillColor = isFinished ? 0x00ff00 : 0x00aaff;
+      const barFillColor = isFinished ? 0x00ff00 : 0x00aaff;
       const fillW = barW * percent;
 
       const barFill = this.add
-        .rectangle(barX, barY, fillW, barH, fillColor)
+        .rectangle(barX, barY, fillW, barH, barFillColor)
         .setOrigin(0, 0.5);
 
       // Text angka progress
@@ -178,7 +220,7 @@ export default class AchievementScene extends Phaser.Scene {
 
       // --- 5. Status / Button (Kanan) ---
 
-      itemContainer.add([bg, icon, title, desc, barBg, barFill, progressTxt]);
+      itemContainer.add([bgGraphics, icon, title, desc, barBg, barFill, progressTxt]);
 
       if (isClaimed) {
         // A. SUDAH DIKLAIM -> Teks COMPLETED

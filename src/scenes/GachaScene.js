@@ -30,6 +30,11 @@ export default class GachaScene extends Phaser.Scene {
     this.sound.stopAll();
     this.sound.play('bgm_gacha', { loop: true, volume: 0.6 });
 
+    // --- BACKGROUND IMAGE ---
+    const bg = this.add.image(640, 360, 'gacha_bg');
+    bg.setDisplaySize(1280, 720);
+    bg.setDepth(-10);
+
     // HEADER UI
     this.moneyText = this.add
       .text(1230, 50, `Money: $${PlayerData.getMoney()}`, {

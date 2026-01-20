@@ -24,10 +24,22 @@ export default class ShopScene extends Phaser.Scene {
     this.sound.stopAll();
     this.sound.play('bgm_shop', { loop: true, volume: 0.5 });
 
-    // --- HEADER UI (Tampilan Atas yang Rapi) ---
+    // --- BACKGROUND IMAGE ---
+    const bg = this.add.image(640, 360, 'shop_bg');
+    bg.setDisplaySize(1280, 720);
+    bg.setDepth(-10);
 
-    // 1. Background Header (Bar Hitam)
-    this.add.rectangle(640, 60, 1280, 120, 0x1a1a2e).setDepth(10); // Pastikan di atas layer lain
+    // --- HEADER UI (Glassmorphic Style) ---
+
+    // 1. Translucent Header Bar (Glassmorphism)
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x000000, 0.4); // Semi-transparent black
+    headerBg.fillRect(0, 0, 1280, 120);
+    headerBg.setDepth(10);
+
+    // Optional: Add subtle border at bottom
+    headerBg.lineStyle(1, 0xffffff, 0.1);
+    headerBg.lineBetween(0, 120, 1280, 120);
 
     // 2. Judul "SHOP" (Tengah)
     this.add
@@ -35,6 +47,8 @@ export default class ShopScene extends Phaser.Scene {
         fontSize: "40px",
         fontStyle: "bold",
         color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 4,
       })
       .setOrigin(0.5)
       .setDepth(11);

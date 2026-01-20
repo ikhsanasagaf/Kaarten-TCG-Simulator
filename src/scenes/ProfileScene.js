@@ -11,6 +11,17 @@ export default class ProfileScene extends Phaser.Scene {
     this.gachaSystem = new GachaSystem(this);
     const stats = this.calculateStats();
 
+    // --- AUDIO ---
+    // Seamless Logic: Cek apakah bgm_main_menu sedang main?
+    // Profile menggunakan lagu yang sama dengan Main Menu
+    const music = this.sound.get('bgm_main_menu');
+    if (music && music.isPlaying) {
+      // Biarkan main
+    } else {
+      this.sound.stopAll();
+      this.sound.play('bgm_main_menu', { loop: true, volume: 0.5 });
+    }
+
     // --- 1. BACKGROUND LAYER ---
     this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e); // Background Layar
 
