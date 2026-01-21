@@ -12,51 +12,67 @@ export default class ProfileScene extends Phaser.Scene {
     const stats = this.calculateStats();
 
     // --- AUDIO ---
-    let music = this.sound.get('bgm_main_menu');
-
+    let music = this.sound.get("bgm_main_menu");
     if (!music) {
-      music = this.sound.add('bgm_main_menu', { loop: true, volume: 0.5 });
+      music = this.sound.add("bgm_main_menu", { loop: true, volume: 0.5 });
     }
-
     if (!music.isPlaying) {
       this.sound.stopAll();
       music.play();
     }
 
     // --- 1. BACKGROUND LAYER ---
-    this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e); // Background Layar
+    this.add.rectangle(640, 360, 1280, 720, 0x1a1a2e).setDepth(0);
 
-    // Header Bar
-    this.add.rectangle(640, 60, 1280, 120, 0x000000, 0.5);
-    this.add.text(50, 40, "MY PROFILE", {
-      fontSize: "40px",
-      fontStyle: "bold",
-      color: "#fff",
-    });
+    // --- 2. HEADER UI (STANDARDIZED) ---
 
-    // Tombol Close (Pojok Kanan Atas)
-    const closeBtn = this.add
-      .text(1230, 40, "Back", {
-        fontSize: "24px",
-        color: "#ff4444",
+    // Background Header
+    this.add.rectangle(640, 60, 1280, 120, 0x1a1a2e).setDepth(10);
+
+    // Judul Scene
+    this.add
+      .text(640, 60, "MY PROFILE", {
+        fontSize: "40px",
+        fontStyle: "bold",
+        color: "#fff",
+      })
+      .setOrigin(0.5)
+      .setDepth(11);
+
+    // Money Display (Kanan Atas)
+    this.add
+      .text(1230, 60, `$${PlayerData.getMoney()}`, {
+        fontSize: "28px",
+        color: "#ffd700",
         fontStyle: "bold",
       })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true });
+      .setOrigin(1, 0.5)
+      .setDepth(11);
 
-    closeBtn.on("pointerdown", () => this.scene.start("MainMenuScene"));
+    // Tombol Back (Kiri Atas)
+    const backBtn = this.add
+      .text(40, 60, "< BACK", {
+        fontSize: "24px",
+        backgroundColor: "#333",
+        padding: { x: 15, y: 8 },
+        color: "#fff",
+      })
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(11);
 
-    // --- 2. KARTU PROFIL (Container Utama) ---
+    backBtn.on("pointerdown", () => this.scene.start("MainMenuScene"));
+
+    // --- 3. KARTU PROFIL (Container Utama) ---
     const cardBg = this.add.container(640, 380);
 
-    // Background Kotak Profil (Lebih Lebar sedikit)
+    // Background Kotak Profil
     const bgRect = this.add
       .rectangle(0, 0, 900, 400, 0x222233)
       .setStrokeStyle(3, 0x4444ff);
     cardBg.add(bgRect);
 
-    // --- 3. BAGIAN KIRI (NAMA & TITLE) ---
-    // Posisi X relatif terhadap container (0 adalah tengah)
+    // --- 4. BAGIAN KIRI (NAMA & TITLE) ---
     const leftSectionX = -230;
 
     // Nama Player
@@ -68,7 +84,7 @@ export default class ProfileScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    // Tombol Edit Nama (Ikon Pensil Kecil)
+    // Tombol Edit Nama
     const editBtn = this.add
       .text(leftSectionX + this.nameText.width / 2 + 20, -40, "✎", {
         fontSize: "15px",
@@ -89,25 +105,25 @@ export default class ProfileScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     cardBg.add([this.nameText, editBtn, titleText]);
-    this.editBtn = editBtn; // Simpan referensi untuk update posisi nanti
+    this.editBtn = editBtn;
 
-    // --- 4. PEMISAH (GARIS VERTIKAL) ---
+    // --- 5. PEMISAH (GARIS VERTIKAL) ---
     const separator = this.add.rectangle(0, 0, 2, 300, 0x444455);
     cardBg.add(separator);
 
-    // --- 5. BAGIAN KANAN (STATS) ---
+    // --- 6. BAGIAN KANAN (STATS) ---
     const rightX = 50;
     const startY = -100;
     const gapY = 70;
 
-    // A. MONEY
+    // A. MONEY (Tetap ditampilkan di card juga sebagai detail)
     this.createStatRow(
       cardBg,
       rightX,
       startY,
       "Current Money",
       `$${PlayerData.getMoney()}`,
-      "#ffd700"
+      "#ffd700",
     );
 
     // B. COLLECTION LEVEL
@@ -117,13 +133,12 @@ export default class ProfileScene extends Phaser.Scene {
       startY + gapY,
       "Collection Level",
       `${stats.collectionLevel}`,
-      "#00ffff"
+      "#00ffff",
     );
 
-    // C. ALBUM PROGRESS (Text & Bar)
+    // C. ALBUM PROGRESS
     const albumY = startY + gapY * 2;
 
-    // Label Album
     const albumLabel = this.add
       .text(rightX, albumY, "Album Completion", {
         fontSize: "18px",
@@ -131,7 +146,6 @@ export default class ProfileScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    // Text Angka (misal: 15 / 100)
     const albumValue = this.add
       .text(
         rightX + 320,
@@ -141,28 +155,25 @@ export default class ProfileScene extends Phaser.Scene {
           fontSize: "20px",
           fontStyle: "bold",
           color: "#ffffff",
-        }
+        },
       )
       .setOrigin(1, 0.5);
 
-    // Progress Bar Container
+    // Progress Bar
     const barW = 280;
     const barH = 15;
     const barX = rightX;
-    const barY = albumY + 35; // Di bawah tulisan Album
+    const barY = albumY + 35;
 
-    // Background Bar (Abu gelap)
     const barBase = this.add
       .rectangle(barX, barY, barW, barH, 0x000000)
       .setOrigin(0, 0.5);
 
-    // Fill Bar (Hijau)
     const fillW = (stats.completionRate / 100) * barW;
     const barFill = this.add
       .rectangle(barX, barY, fillW, barH, 0x00ff00)
       .setOrigin(0, 0.5);
 
-    // Persentase Text (Di ujung kanan bar)
     const percentTxt = this.add
       .text(barX + barW + 10, barY, `${stats.completionRate}%`, {
         fontSize: "16px",
@@ -174,30 +185,22 @@ export default class ProfileScene extends Phaser.Scene {
   }
 
   handleEditName() {
-    // Menggunakan prompt browser bawaan (Simple & Efektif untuk Web Game)
     const newName = prompt(
       "Masukkan nama baru (Max 12 karakter):",
-      PlayerData.username
+      PlayerData.username,
     );
 
     if (newName && newName.trim().length > 0) {
-      // Potong jika terlalu panjang
       const finalName = newName.trim().substring(0, 12);
-
-      // Simpan ke PlayerData
       PlayerData.username = finalName;
       PlayerData.save();
 
-      // Update Tampilan Text
       this.nameText.setText(finalName);
-
-      // Update posisi tombol pensil agar selalu di samping nama
       this.editBtn.x = -200 + this.nameText.width / 2 + 25;
     }
   }
 
   createStatRow(container, x, y, label, value, valueColor) {
-    // Label (Kiri)
     const labelTxt = this.add
       .text(x, y, label, {
         fontSize: "18px",
@@ -205,7 +208,6 @@ export default class ProfileScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
-    // Value (Kanan - Rata Kanan di x+320)
     const valueTxt = this.add
       .text(x + 320, y, value, {
         fontSize: "24px",
@@ -225,7 +227,6 @@ export default class ProfileScene extends Phaser.Scene {
     });
 
     const unlockedCount = PlayerData.obtainedCardNames.length;
-
     const completionRate =
       totalGameCards > 0
         ? Math.floor((unlockedCount / totalGameCards) * 100)
@@ -242,7 +243,7 @@ export default class ProfileScene extends Phaser.Scene {
       totalGameCards,
       unlockedCount,
       completionRate,
-      collectionLevel, // Menggunakan nilai dari PlayerData
+      collectionLevel,
       playerTitle,
     };
   }
