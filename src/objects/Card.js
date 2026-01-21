@@ -4,6 +4,7 @@ export default class Card extends Phaser.GameObjects.Container {
   constructor(scene, x, y, cardData) {
     super(scene, x, y);
     this.scene = scene;
+    this.cardName = cardData.name;
     this.rarity = cardData.rarity; // Store Rarity
 
     // Status Kartu
@@ -49,22 +50,46 @@ export default class Card extends Phaser.GameObjects.Container {
   }
 
   showAura() {
-    // 1. Common / Rare: No Effect
+    // 0. Base Border Glow for ALL rarities
+    const RARITY_COLORS = {
+      "Secret Rare": 0xff0000, // Merah
+      "Ultra Rare": 0xffd700, // Emas
+      "Super Rare": 0xaa00ff, // Ungu
+      "Rare": 0x0088ff, // Biru
+      "Common": 0xaaaaaa // Abu-abu
+    };
+
+    const glowColor = RARITY_COLORS[this.rarity] || 0xaaaaaa;
+    const baseGlow = this.scene.add.graphics();
+    baseGlow.fillStyle(glowColor, 0.5);
+    // Kartu berukuran 150x220, border kita buat sedikit lebih besar (160x230)
+    baseGlow.fillRoundedRect(-80, -115, 160, 230, 12);
+    this.addAt(baseGlow, 0);
+
+    // Animasi Denyut untuk selain Common
+    if (this.rarity !== "Common") {
+      this.scene.tweens.add({
+        targets: baseGlow,
+        alpha: 0.2,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1
+      });
+    }
+
+    // 1. Common / Rare: Cukup border di atas
     if (this.rarity === "Common" || this.rarity === "Rare") return;
 
-    // 2. Super Rare (Purple Pulse)
+    // 2. Super Rare (Extra Effects)
     if (this.rarity === "Super Rare") {
-      const glow = this.scene.add.graphics();
-      glow.fillStyle(0xaa00ff, 0.6); // Purple
-      glow.fillRoundedRect(-85, -120, 170, 240, 15);
-      this.addAt(glow, 0); // Put behind card
-
+      // Kita tambahkan pulse tambahan yang membesar
       this.scene.tweens.add({
-        targets: glow,
-        alpha: 0.2,
+        targets: baseGlow,
         scaleX: 1.1,
         scaleY: 1.1,
-        duration: 800,
+        x: 0,
+        y: 0,
+        duration: 1200,
         yoyo: true,
         repeat: -1
       });
@@ -72,16 +97,9 @@ export default class Card extends Phaser.GameObjects.Container {
 
     // 3. Ultra Rare (Gold God Rays)
     if (this.rarity === "Ultra Rare") {
-      // A. Static Glow
-      const glow = this.scene.add.graphics();
-      glow.fillStyle(0xffd700, 0.5); // Gold
-      glow.fillRoundedRect(-85, -120, 170, 240, 15);
-      this.addAt(glow, 0);
-
-      // B. Rotating Rays
+      // Rotating Rays
       const rays = this.scene.add.graphics();
       rays.fillStyle(0xffd700, 0.3); // Gold Rays
-      // Draw a star/sun shape manually
       for (let i = 0; i < 8; i++) {
         rays.fillTriangle(0, 0, -20, -150, 20, -150);
         rays.rotateCanvas(Math.PI / 4);
@@ -94,36 +112,24 @@ export default class Card extends Phaser.GameObjects.Container {
         duration: 6000,
         repeat: -1
       });
-
-      this.scene.tweens.add({
-        targets: glow,
-        alpha: 0.8,
-        duration: 500,
-        yoyo: true,
-        repeat: -1
-      });
     }
 
-    // 4. Secret Rare (Red Lightning / Chaos)
+    // 4. Secret Rare (Red Lightning / Glitch)
     if (this.rarity === "Secret Rare") {
-      const glow = this.scene.add.graphics();
-      const color = 0xff0000; // Red
+      const lightning = this.scene.add.graphics();
+      const color = 0xff0000;
+      this.addAt(lightning, 0);
 
-      this.addAt(glow, 0);
-
-      // Chaotic Tween
       this.scene.tweens.addCounter({
-        from: 0,
-        to: 100,
-        duration: 100,
-        repeat: -1,
+        from: 0, to: 100, duration: 100, repeat: -1,
         onUpdate: () => {
-          glow.clear();
-          glow.lineStyle(4, color, Math.random());
-          glow.strokeRect(-80 - Math.random() * 10, -115 - Math.random() * 10, 160 + Math.random() * 20, 230 + Math.random() * 20);
+          if (!lightning.scene) return;
+          lightning.clear();
+          lightning.lineStyle(2, color, Math.random());
+          lightning.strokeRect(-85 - Math.random() * 10, -120 - Math.random() * 10, 170 + Math.random() * 20, 240 + Math.random() * 20);
 
-          glow.fillStyle(color, 0.2);
-          glow.fillRoundedRect(-85, -120, 170, 240, 15);
+          lightning.fillStyle(color, 0.1);
+          lightning.fillRoundedRect(-82, -117, 164, 234, 12);
         }
       });
     }

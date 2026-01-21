@@ -43,9 +43,10 @@ export default class GachaSystem {
       const line = lines[i];
       if (!line) continue;
 
-      const columns = line.split(",");
+      // Regex to split by comma ONLY if not inside quotes
+      const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-      const rawName = columns[0];
+      const rawName = columns[0].trim();
       const rawRarityStr = columns[1] ? columns[1].trim() : "";
       const rawPrice = columns[2] ? columns[2].trim() : "0";
       const setName = columns[3] ? columns[3].trim() : "Unknown Set";

@@ -129,7 +129,7 @@ export default class GachaScene extends Phaser.Scene {
     this.zoomContainer.add([bg, this.zoomedImage, closeText]);
   }
 
-  showZoom(textureKey, fallbackKey = 'card_back') {
+  showZoom(textureKey, fallbackKey = 'card_back', rarity = 'Common') {
     this.isZooming = true;
     this.zoomContainer.setPosition(
       this.cameras.main.scrollX,
@@ -145,6 +145,80 @@ export default class GachaScene extends Phaser.Scene {
     const targetHeight = 440;
     const scale = targetHeight / this.zoomedImage.height;
     this.zoomedImage.setScale(scale);
+
+    // --- ZOOM AURA LOGIC ---
+    // Calculate Scaled Dimensions (Scale ~2x original)
+    const w = 150 * 2;
+    const h = 220 * 2;
+
+    this.activeAuraElements = []; // Track elements to destroy
+
+    if (rarity === "Super Rare") {
+      const glow = this.add.graphics();
+      glow.fillStyle(0xaa00ff, 0.6);
+      // Position relative to zoom container center (640, 360)
+      // Rect needs to be centered manually if using fillRoundedRect
+      glow.fillRoundedRect(640 - w / 2 - 10, 360 - h / 2 - 10, w + 20, h + 20, 20);
+      this.zoomContainer.addAt(glow, 1); // Insert behind image
+      this.activeAuraElements.push(glow);
+
+      this.tweens.add({
+        targets: glow,
+        alpha: 0.2,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        x: -20,
+        y: -10,
+        duration: 800,
+        yoyo: true,
+        repeat: -1
+      });
+    }
+
+    if (rarity === "Ultra Rare") {
+      // Glow
+      const glow = this.add.graphics();
+      glow.fillStyle(0xffd700, 0.5);
+      glow.fillRoundedRect(640 - w / 2 - 10, 360 - h / 2 - 10, w + 20, h + 20, 20);
+      this.zoomContainer.addAt(glow, 1);
+      this.activeAuraElements.push(glow);
+
+      // Rays
+      const rays = this.add.graphics();
+      rays.setPosition(640, 360); // Center
+      rays.fillStyle(0xffd700, 0.3);
+      // Draw larger rays for zoom
+      for (let i = 0; i < 8; i++) {
+        rays.fillTriangle(0, 0, -40, -300, 40, -300);
+        rays.rotateCanvas(Math.PI / 4);
+      }
+      this.zoomContainer.addAt(rays, 1);
+      this.activeAuraElements.push(rays);
+
+      this.tweens.add({ targets: rays, angle: 360, duration: 6000, repeat: -1 });
+      this.tweens.add({ targets: glow, alpha: 0.8, duration: 500, yoyo: true, repeat: -1 });
+    }
+
+    if (rarity === "Secret Rare") {
+      const glow = this.add.graphics();
+      const color = 0xff0000;
+      this.zoomContainer.addAt(glow, 1);
+      this.activeAuraElements.push(glow);
+
+      this.tweens.addCounter({
+        from: 0, to: 100, duration: 100, repeat: -1,
+        onUpdate: () => {
+          if (!glow.scene) return;
+          glow.clear();
+          glow.lineStyle(5, color, Math.random());
+          glow.strokeRect(640 - w / 2 - Math.random() * 20, 360 - h / 2 - Math.random() * 20, w + Math.random() * 40, h + Math.random() * 40);
+
+          glow.fillStyle(color, 0.2);
+          glow.fillRoundedRect(640 - w / 2 - 10, 360 - h / 2 - 10, w + 20, h + 20, 20);
+        }
+      });
+    }
+
     this.zoomContainer.setVisible(true);
   }
 
@@ -152,6 +226,12 @@ export default class GachaScene extends Phaser.Scene {
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
       this.isZooming = false;
+
+      // Cleanup Aura
+      if (this.activeAuraElements) {
+        this.activeAuraElements.forEach(el => el.destroy());
+        this.activeAuraElements = [];
+      }
     });
   }
   // --- LOGIC UTAMA PENGECEKAN KARTU ---
