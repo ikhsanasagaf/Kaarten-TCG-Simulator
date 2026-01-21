@@ -71,11 +71,12 @@ export default class PreloadScene extends Phaser.Scene {
 
 
     // Buat Depan Kartu (Warna-warni sesuai Rarity)
-    this.createCardTexture('card_common', 0xaaaaaa);    // Abu-abu
-    this.createCardTexture('card_uncommon', 0x00ff00);  // Hijau
-    this.createCardTexture('card_rare', 0x0000ff);      // Biru
-    this.createCardTexture('card_epic', 0x800080);      // Ungu
-    this.createCardTexture('card_legendary', 0xffd700); // Emas
+    // Buat Depan Kartu (Warna-warni sesuai Rarity)
+    this.createCardTexture('card_common', 0xaaaaaa);      // Grey
+    this.createCardTexture('card_rare', 0x0088ff);        // Blue
+    this.createCardTexture('card_super_rare', 0xaa00ff);  // Purple
+    this.createCardTexture('card_ultra_rare', 0xffd700);  // Gold
+    this.createCardTexture('card_secret_rare', 0xff0000); // Red
 
     // --- 4. KLIK UNTUK MULAI (Agar Audio Bisa Jalan) ---
     const width = this.cameras.main.width;

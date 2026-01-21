@@ -15,10 +15,12 @@ export default class GachaScene extends Phaser.Scene {
     this.revealAllBtn = null;
     this.sellAllBtn = null;
     this.backBtn = null;
+    this.isZooming = false;
   }
 
   init(data) {
     this.currentSet = data.selectedSet || null;
+    this.packKey = data.packKey || null;
     this.displayedCards = [];
     this.displayedButtons = [];
   }
@@ -106,12 +108,10 @@ export default class GachaScene extends Phaser.Scene {
       .setDepth(100)
       .setVisible(false);
 
-    // Background Gelap
     const bg = this.add
       .rectangle(640, 360, 1280, 720, 0x000000, 0.85)
       .setInteractive({ useHandCursor: true });
 
-    // Gambar Zoom
     this.zoomedImage = this.add
       .image(640, 360, "card_back")
       .setInteractive({ useHandCursor: true });
@@ -129,8 +129,18 @@ export default class GachaScene extends Phaser.Scene {
     this.zoomContainer.add([bg, this.zoomedImage, closeText]);
   }
 
-  showZoom(textureKey) {
-    this.zoomedImage.setTexture(textureKey);
+  showZoom(textureKey, fallbackKey = 'card_back') {
+    this.isZooming = true;
+    this.zoomContainer.setPosition(
+      this.cameras.main.scrollX,
+      this.cameras.main.scrollY
+    );
+
+    if (this.textures.exists(textureKey)) {
+      this.zoomedImage.setTexture(textureKey);
+    } else {
+      this.zoomedImage.setTexture(fallbackKey);
+    }
     this.zoomedImage.setScale(1);
     const targetHeight = 440;
     const scale = targetHeight / this.zoomedImage.height;
@@ -141,9 +151,9 @@ export default class GachaScene extends Phaser.Scene {
   hideZoom() {
     this.time.delayedCall(50, () => {
       this.zoomContainer.setVisible(false);
+      this.isZooming = false;
     });
   }
-
   // --- LOGIC UTAMA PENGECEKAN KARTU ---
   onCardOpened(cardInstance) {
     const index = this.displayedCards.findIndex(
@@ -191,6 +201,53 @@ export default class GachaScene extends Phaser.Scene {
   }
 
   openPackVisual() {
+    this.statusText.setText("");
+
+    // 1. Pack Animation Setup
+    let packNode;
+    // Use fallback if packKey is invalid or not provided
+    if (this.packKey && this.textures.exists(this.packKey)) {
+      packNode = this.add.image(640, 360, this.packKey).setScale(0.8);
+    } else {
+      packNode = this.add.rectangle(640, 360, 200, 300, 0x6600cc);
+    }
+    packNode.setDepth(50); // Above background, below UI
+
+    // 2. Shake Animation
+    this.tweens.add({
+      targets: packNode,
+      x: '+=10',
+      y: '+=3',
+      angle: { from: -3, to: 3 },
+      duration: 80,
+      yoyo: true,
+      repeat: 20,
+      onComplete: () => {
+        this.triggerFlashAndOpen(packNode);
+      }
+    });
+  }
+
+  triggerFlashAndOpen(packNode) {
+    const flash = this.add.rectangle(640, 360, 1280, 720, 0xffffff).setAlpha(0).setDepth(200);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 1,
+      duration: 150,
+      yoyo: true,
+      hold: 100,
+      onYoyo: () => {
+        if (packNode) packNode.destroy();
+        this.processGachaMechanics();
+      },
+      onComplete: () => {
+        flash.destroy();
+      }
+    });
+  }
+
+  processGachaMechanics() {
     this.displayedCards.forEach((item) => {
       if (item.card) item.card.destroy();
     });

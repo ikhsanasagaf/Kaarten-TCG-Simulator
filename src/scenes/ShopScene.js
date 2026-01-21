@@ -143,13 +143,13 @@ export default class ShopScene extends Phaser.Scene {
   }
 
   // --- LOGIKA TRANSAKSI ---
-  attemptBuyPack(setName, price) {
+  attemptBuyPack(setName, price, packKey) {
     const isSuccess = PlayerData.spendMoney(price);
 
     if (isSuccess) {
       console.log(`[Shop] Sukses membeli ${setName} seharga $${price}`);
       this.moneyText.setText(`Money: $${PlayerData.getMoney()}`);
-      this.scene.start("GachaScene", { selectedSet: setName });
+      this.scene.start("GachaScene", { selectedSet: setName, packKey: packKey });
     } else {
       console.log("[Shop] Uang tidak cukup!");
       this.tweens.add({
@@ -191,7 +191,7 @@ export default class ShopScene extends Phaser.Scene {
     container.add([rect, label, nameText, priceText]);
 
     rect.on("pointerdown", () => {
-      this.attemptBuyPack(setName, price);
+      this.attemptBuyPack(setName, price, null);
     });
   }
 
@@ -248,7 +248,7 @@ export default class ShopScene extends Phaser.Scene {
     });
 
     img.on("pointerdown", () => {
-      this.attemptBuyPack(setName, price);
+      this.attemptBuyPack(setName, price, key);
     });
   }
 }

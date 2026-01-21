@@ -103,13 +103,18 @@ export default class InventoryScene extends Phaser.Scene {
     this.zoomContainer.add([bg, this.zoomedImage, closeText]);
   }
 
-  showZoom(textureKey) {
+  showZoom(textureKey, fallbackKey = 'card_back') {
     this.isZooming = true;
     this.zoomContainer.setPosition(
       this.cameras.main.scrollX,
       this.cameras.main.scrollY
     );
-    this.zoomedImage.setTexture(textureKey);
+
+    if (this.textures.exists(textureKey)) {
+      this.zoomedImage.setTexture(textureKey);
+    } else {
+      this.zoomedImage.setTexture(fallbackKey);
+    }
     this.zoomedImage.setScale(1);
     const targetHeight = 440;
     const scale = targetHeight / this.zoomedImage.height;
